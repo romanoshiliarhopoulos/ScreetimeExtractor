@@ -72,14 +72,16 @@ def analyze(csv_path, output, quiet):
               help="Path to the screen time CSV.")
 @click.option("--output", "-o", default="instagram_report.pdf", show_default=True,
               help="Output PDF path.")
+@click.option("--config", "config_path", default=None,
+              help="Path to apps.yaml config (default: apps.yaml in project root).")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress progress output.")
-def instagram(csv_path, output, quiet):
-    """Generate an Instagram doomscrolling pattern analysis PDF."""
+def instagram(csv_path, output, config_path, quiet):
+    """Generate a social media doomscrolling PDF report. Configure apps in apps.yaml."""
     from screentime_analyzer.instagram import generate_report
     if not Path(csv_path).exists():
         click.echo(f"ERROR: CSV not found: {csv_path}", err=True)
         sys.exit(1)
-    generate_report(csv_path=csv_path, output_pdf=output, verbose=not quiet)
+    generate_report(csv_path=csv_path, output_pdf=output, config_path=config_path, verbose=not quiet)
 
 
 # ── agent ─────────────────────────────────────────────────────────────────────

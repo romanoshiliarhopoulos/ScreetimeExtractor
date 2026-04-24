@@ -20,6 +20,7 @@ STATS_JSON ?= doomscroll_stats.json
 CHATBOT_PROMPT ?= chatbot_prompt.txt
 APP        ?= com.burbn.instagram
 MODEL      ?= claude-opus-4-6
+CONFIG     ?= apps.yaml
 
 .PHONY: help install extract charts charts-all charts-instagram agent stats chatbot-prompt open clean
 
@@ -29,7 +30,7 @@ help:
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
 install:
-	pip install -e ".[agent]"
+	pip install -e ".[agent]" pyyaml
 
 # ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -41,15 +42,15 @@ extract:
 charts: charts-all
 
 charts-all: $(CSV)
-	screentime analyze  --csv $(CSV) --output $(REPORT_PDF)
-	screentime instagram --csv $(CSV) --output $(IG_PDF)
+	screentime analyze   --csv $(CSV) --output $(REPORT_PDF)
+	screentime instagram --csv $(CSV) --output $(IG_PDF) --config $(CONFIG)
 	@echo ""
 	@echo "Reports written:"
 	@echo "  $(REPORT_PDF)"
 	@echo "  $(IG_PDF)"
 
 charts-instagram: $(CSV)
-	screentime instagram --csv $(CSV) --output $(IG_PDF)
+	screentime instagram --csv $(CSV) --output $(IG_PDF) --config $(CONFIG)
 
 # ── Agent (Anthropic API) ─────────────────────────────────────────────────────
 

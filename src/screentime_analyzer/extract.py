@@ -143,17 +143,28 @@ def extract(output: str = DEFAULT_OUTPUT, verbose: bool = True) -> int:
             print(f"  -> {len(sessions)} sessions extracted")
         all_sessions.extend(sessions)
 
-    all_sessions.sort(key=lambda x: x["start_time"])
+    if not all_sessions:
+        raise ValueError("No sessions found in Biome database.")
+
+    # Load existing CSV and merge — so each extract run accumulates history
+    existing_sessions = []
+    if os.path.isfile(output):
+        with open(output, newline="") as f:
+            existing_sessions = list(csv.DictReader(f))
+        if verbose:
+            print(f"\nMerging with {len(existing_sessions)} existing sessions in {output}")
+
+    combined = existing_sessions + all_sessions
+    combined.sort(key=lambda x: x["start_time"])
     seen: set = set()
     unique_sessions = []
-    for s in all_sessions:
+    for s in combined:
         key = (s["app"], s["start_time"])
         if key not in seen:
             seen.add(key)
             unique_sessions.append(s)
 
-    if not unique_sessions:
-        raise ValueError("No sessions found in Biome database.")
+    new_count = len(unique_sessions) - len(existing_sessions)
 
     with open(output, "w", newline="") as f:
         writer = csv.DictWriter(
@@ -163,11 +174,12 @@ def extract(output: str = DEFAULT_OUTPUT, verbose: bool = True) -> int:
         writer.writerows(unique_sessions)
 
     if verbose:
-        print(f"\nDone. {len(unique_sessions)} sessions written to {output}")
+        print(f"\nDone. {len(unique_sessions)} total sessions in {output} "
+              f"(+{new_count} new)")
         from collections import defaultdict
         totals: dict = defaultdict(float)
         for s in unique_sessions:
-            totals[s["app"]] += s["duration_seconds"]
+            totals[s["app"]] += float(s["duration_seconds"])
         top = sorted(totals.items(), key=lambda x: -x[1])[:10]
         print("\nTop 10 apps by total time:")
         for app, secs in top:

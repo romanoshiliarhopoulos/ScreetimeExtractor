@@ -1,0 +1,54 @@
+# ── Doomscrolling Report Configuration ───────────────────────────────────────
+#
+# Edit this file to choose which apps appear in your report.
+# You can add as many apps as you like — they will all be analysed together.
+#
+# HOW TO FIND YOUR APP'S BUNDLE ID:
+#   Run:  make extract
+#   Then: python3 -c "import pandas as pd; df=pd.read_csv('screentime.csv'); print(df['app'].value_counts().head(30))"
+#   This lists your most-used apps by their bundle ID.
+#
+# COMMON BUNDLE IDs:
+#   Instagram   →  com.burbn.instagram
+#   TikTok      →  com.zhiliaoapp.musically
+#   YouTube     →  com.google.ios.youtube
+#   Twitter / X →  com.atebits.Tweetie2
+#   Reddit      →  com.reddit.Reddit
+#   Snapchat    →  com.toyopagroup.picaboo
+#   Facebook    →  com.facebook.Facebook
+#   Threads     →  com.burbn.barcelona
+#   BeReal      →  AlexisBarreyat.BeReal
+#   LinkedIn    →  com.linkedin.LinkedIn
+#
+# COLORS:
+#   Use any standard web color hex code, e.g. "#E1306C"
+#   Color pickers: https://htmlcolorcodes.com
+# ─────────────────────────────────────────────────────────────────────────────
+
+report_title: "Social Media Doomscrolling Report"
+
+apps:
+  - name: Instagram
+    bundle_id: com.burbn.instagram
+    color: "#E1306C"
+
+  - name: TikTok
+    bundle_id: com.zhiliaoapp.musically
+    color: "#010101"
+
+  # Uncomment and edit to add more apps:
+  # - name: YouTube
+  #   bundle_id: com.google.ios.youtube
+  #   color: "#FF0000"
+
+  # - name: Twitter / X
+  #   bundle_id: com.atebits.Tweetie2
+  #   color: "#1DA1F2"
+
+# ── Thresholds (optional — defaults shown) ───────────────────────────────────
+# Adjust these if you want different session type definitions.
+
+# glance_max_min: 1       # sessions under this → "Glance"
+# doomscroll_min: 5       # sessions >= this → "Doomscroll" (and above is Binge)
+# binge_min: 20           # sessions >= this → "Binge"
+# streak_gap_min: 60      # max gap between sessions to count as same streak

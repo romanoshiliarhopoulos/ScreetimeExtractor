@@ -9,20 +9,36 @@ Analyse your iPhone screen time data — privately on your own machine, or send 
 - macOS (Sonoma or later recommended)
 - iPhone with **Share Across Devices** enabled: Settings → Screen Time → Share Across Devices
 - Python 3.11+
+- Terminal with **Full Disk Access** (needed to read the Biome database)
+
+> **Grant Full Disk Access:** System Settings → Privacy & Security → Full Disk Access → add Terminal (or iTerm2)
 
 ---
 
-## Setup
+## Quick Start
 
 ```bash
 git clone https://github.com/romanoshiliarhopoulos/ScreetimeExtractor.git
 cd ScreetimeExtractor
-make install
+make install    # install the package + all dependencies
+make extract    # pull data from your iPhone → screentime.csv
+make charts     # generate PDF reports
+make open       # open them in Preview
 ```
 
 ---
 
-## Step 1 — Extract your data
+## Step 1 — Install
+
+```bash
+make install
+```
+
+Installs the package and all Python dependencies (pandas, matplotlib, scipy, reportlab, anthropic, pyyaml, etc.).
+
+---
+
+## Step 2 — Extract your data
 
 ```bash
 make extract
@@ -30,11 +46,59 @@ make extract
 
 Reads the binary Biome database at `~/Library/Biome/streams/restricted/App.InFocus` and writes `screentime.csv`.
 
-> **Permissions:** Your terminal needs Full Disk Access. Go to **System Settings → Privacy & Security → Full Disk Access** and add Terminal (or iTerm2).
+**Run this regularly** (weekly, monthly) to build up history. If `screentime.csv` already exists, new sessions are merged in and deduplicated — your data accumulates over time rather than being overwritten.
+
+> Your terminal needs Full Disk Access or this step will fail with a permissions error.
 
 ---
 
-## Step 2 — Generate charts
+## Step 3 — Configure which apps to analyse
+
+Open `apps.yaml` in any text editor. It looks like this:
+
+```yaml
+report_title: "Social Media Doomscrolling Report"
+
+apps:
+  - name: Instagram
+    bundle_id: com.burbn.instagram
+    color: "#E1306C"
+
+  - name: TikTok
+    bundle_id: com.zhiliaoapp.musically
+    color: "#010101"
+```
+
+**To add or remove apps**, edit the list. Each entry needs three fields:
+
+| Field | What it is |
+|---|---|
+| `name` | Display name — shown in charts and the report title |
+| `bundle_id` | The app's iOS identifier (see table below) |
+| `color` | Any hex color code, e.g. `"#FF0000"` for red |
+
+### Common bundle IDs
+
+| App | Bundle ID |
+|---|---|
+| Instagram | `com.burbn.instagram` |
+| TikTok | `com.zhiliaoapp.musically` |
+| YouTube | `com.google.ios.youtube` |
+| Twitter / X | `com.atebits.Tweetie2` |
+| Reddit | `com.reddit.Reddit` |
+| Snapchat | `com.toyopagroup.picaboo` |
+| Facebook | `com.facebook.Facebook` |
+| Threads | `com.burbn.barcelona` |
+
+**Don't see your app?** Run this after extracting to list your most-used apps:
+
+```bash
+python3 -c "import pandas as pd; df=pd.read_csv('screentime.csv'); print(df['app'].value_counts().head(30))"
+```
+
+---
+
+## Step 4 — Generate reports
 
 ```bash
 make charts
@@ -42,7 +106,7 @@ make charts
 
 Writes two PDF reports:
 - `screentime_report.pdf` — full report across all apps
-- `instagram_report.pdf` — Instagram doomscroll deep-dive
+- `instagram_report.pdf` — doomscrolling deep-dive for your configured apps
 
 Open them immediately:
 
@@ -50,15 +114,38 @@ Open them immediately:
 make open
 ```
 
-To generate only the Instagram report:
+To regenerate only the doomscrolling report:
 
 ```bash
 make charts-instagram
 ```
 
+### What the doomscrolling report covers (18 pages)
+
+| Page | What you see |
+|---|---|
+| Title | Overview stats, apps analysed, date range |
+| Daily usage | Bar + 5-day rolling average |
+| Weekly trends | Weekly totals + rolling median session length |
+| Session types | Glance / Scroll / Doomscroll / Binge counts and hours |
+| App comparison | Side-by-side stats across all configured apps |
+| Hourly patterns | Sessions and time by hour of day |
+| Day × Hour heatmap | When in the week usage is heaviest |
+| Session distribution | Histogram + cumulative time chart |
+| Monthly calendar | GitHub-style grid — darker = more time |
+| Doom streaks | Duration distribution, when they happen, day-of-week |
+| Streak calendar | Calendar view of which days had doom streaks |
+| First open of day | What time you reach for the app first |
+| Weekday vs weekend | Daily average + hourly profile comparison |
+| Reopen loop | How quickly you reopen after closing |
+| Session escalation | Do sessions get longer as the day goes on? |
+| Night usage | 10pm–3am trend over time + by hour |
+| Recovery days | How often you use it < 15 min or not at all |
+| Daily intensity | Dot calendar — size and colour = minutes |
+
 ---
 
-## Step 3 — LLM analysis
+## Step 5 — LLM analysis (optional)
 
 All statistics are computed locally. Only aggregated numbers (no raw session data) are sent to the API.
 
@@ -69,7 +156,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 make agent
 ```
 
-Writes the narrative report to `agent_report.md`. Get an API key at [console.anthropic.com](https://console.anthropic.com).
+Writes a narrative report to `agent_report.md`. Get an API key at [console.anthropic.com](https://console.anthropic.com).
 
 To analyse a different app:
 
@@ -83,9 +170,9 @@ make agent APP=com.google.ios.youtube
 make chatbot-prompt
 ```
 
-Writes `chatbot_prompt.txt` — a single file containing the system prompt and your stats JSON. Open it, copy everything, and paste into [Claude.ai](https://claude.ai), ChatGPT, or any other chatbot.
+Writes `chatbot_prompt.txt` — a single file with the system prompt and your stats JSON. Open it, copy everything, paste into [Claude.ai](https://claude.ai), ChatGPT, or any other chatbot.
 
-To just dump the raw stats JSON:
+To dump just the raw stats JSON:
 
 ```bash
 make stats
@@ -97,18 +184,12 @@ make stats
 
 If you'd rather have a report generated for you:
 
-```bash
-screentime submit
-```
-
-Creates `screentime_submission_<date>.zip`. Then:
-
-1. Open a new issue at [github.com/romanoshiliarhopoulos/ScreetimeExtractor/issues](https://github.com/romanoshiliarhopoulos/ScreetimeExtractor/issues)
-2. Title: **Report Request**
-3. Attach the `.zip` file
+1. Run `make extract` to get your CSV
+2. Open a new issue at [github.com/romanoshiliarhopoulos/ScreetimeExtractor/issues](https://github.com/romanoshiliarhopoulos/ScreetimeExtractor/issues)
+3. Title: **Report Request**, attach the CSV
 4. You'll receive a personalised PDF report back
 
-> **Privacy note:** This shares your raw session data (app bundle IDs + timestamps). Use Steps 2–3 above if you prefer to keep your data private.
+> **Privacy note:** This shares your raw session data (app bundle IDs + timestamps). Use Steps 4–5 above if you prefer to keep your data private.
 
 ---
 
@@ -119,10 +200,10 @@ Creates `screentime_submission_<date>.zip`. Then:
 | `make install` | Install the package and all dependencies |
 | `make extract` | Read Biome database → `screentime.csv` |
 | `make charts` | Generate both PDF reports |
-| `make charts-instagram` | Generate Instagram doomscroll PDF only |
+| `make charts-instagram` | Generate doomscrolling PDF only |
 | `make agent` | LLM narrative via Anthropic API → `agent_report.md` |
 | `make chatbot-prompt` | Write ready-to-paste prompt for Claude.ai / ChatGPT |
-| `make stats` | Dump aggregated stats JSON (for manual pasting) |
+| `make stats` | Dump aggregated stats JSON to stdout |
 | `make open` | Open generated PDFs in Preview |
 | `make clean` | Remove all generated CSV and PDF files |
 
@@ -130,21 +211,9 @@ Override defaults with variables:
 
 ```bash
 make charts CSV=mydata.csv
+make charts-instagram CONFIG=my_apps.yaml
 make agent APP=com.google.ios.youtube MODEL=claude-sonnet-4-6
 ```
-
----
-
-## What the reports cover
-
-**`make charts` (full report)**
-Daily totals · top apps · category breakdown · hourly heatmap · session length distributions · weekday vs weekend · first/last pickup times · binge session analysis · usage trend
-
-**`make charts` (Instagram report)**
-Session types (Glance / Scroll / Doomscroll / Binge) · doom streak detection · hourly heatmap · session length CDF · reopen loop · session escalation · first open of day · weekday vs weekend · daily intensity calendar
-
-**`make agent` / `make chatbot-prompt` (LLM report)**
-Numbers at a glance · overall usage · session anatomy (the binge paradox) · reopen loop · session escalation · doom streaks · time patterns (morning, night, weekday/weekend) · the real cost in hours · specific actionable recommendations
 
 ---
 
@@ -163,15 +232,16 @@ Numbers at a glance · overall usage · session anatomy (the binge paradox) · r
 
 ```
 screentime-analyzer/
+├── apps.yaml               # Configure which apps to analyse ← edit this
 ├── src/
 │   └── screentime_analyzer/
 │       ├── cli.py          # screentime CLI entry point
 │       ├── extract.py      # Biome → CSV extraction
-│       ├── analyse.py      # Full PDF report
-│       ├── instagram.py    # Instagram doomscroll PDF
+│       ├── analyse.py      # Full PDF report (all apps)
+│       ├── instagram.py    # Doomscrolling PDF (configured apps)
 │       └── agent.py        # LLM agent (stats → Claude → narrative)
 ├── agent_prompt.md         # System prompt for LLM analysis
-├── Makefile                # All commands
+├── Makefile
 ├── pyproject.toml
 └── README.md
 ```
